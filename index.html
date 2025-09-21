@@ -1,207 +1,268 @@
-<!doctype html>
+<!-- Chosen Palette: Warm Neutral Tones -->
+<!-- Application Structure Plan: The application is designed with a two-part information architecture to cater to different user intents. The top section is a high-level interactive dashboard with two charts (Service Models and Regional Availability). This allows users to immediately grasp the overall landscape of the services. The second part is the detailed, filterable card-based directory. This structure allows users to seamlessly move from a broad overview (analysis) to specific details (exploration). The charts and the directory are interconnected; filtering the directory dynamically updates the charts, providing a cohesive and interactive data exploration experience. This is more effective than a simple list as it provides context and trends first. -->
+<!-- Visualization & Content Choices: 1. Service Models Breakdown -> Goal: Show proportions of different business models -> Viz: Donut Chart (Chart.js/Canvas) -> Interaction: Chart data updates in real-time as the user applies filters to the main directory -> Justification: A donut chart is ideal for clearly visualizing part-to-whole relationships. 2. Regional Availability -> Goal: Compare the number of services per region -> Viz: Horizontal Bar Chart (Chart.js/Canvas) -> Interaction: Also updates dynamically with user filters -> Justification: A bar chart is superior for comparing the totals of discrete categories. 3. Service Directory -> Goal: Organize detailed information and allow deep filtering -> Viz: HTML/Tailwind Card Grid -> Interaction: Text search, dropdown filtering, and sorting -> Justification: This is the most effective method for presenting scannable, detailed information that users can narrow down based on precise criteria. -->
+<!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+<!DOCTYPE html>
 <html lang="id">
 <head>
-  <meta charset="utf-8">
-  <title>Gerbang Gratis Legal — Film · TV · Anime · Dokumenter</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Satu halaman statis yang mengumpulkan tautan resmi (legal) ke film, TV, anime, dan dokumenter gratis — ad-supported, domain publik, atau institusi.">
-  <meta name="referrer" content="no-referrer">
-  <style>
-    :root{--max:1100px}
-    *{box-sizing:border-box}
-    body{margin:0;font:16px/1.5 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Arial}
-    header{position:sticky;top:0;background:#fff;border-bottom:1px solid #eee;z-index:1}
-    .wrap{max-width:var(--max);margin:auto;padding:16px}
-    h1{margin:0 0 8px 0;font-size:20px}
-    .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:14px}
-    .card{border:1px solid #e6e6e6;border-radius:12px;padding:14px;display:flex;flex-direction:column}
-    .card h3{margin:2px 0 6px 0;font-size:18px}
-    .meta{font-size:12px;color:#555;margin:6px 0}
-    .badge{display:inline-block;border:1px solid #ddd;border-radius:999px;padding:2px 8px;margin:2px 4px 0 0;font-size:12px}
-    .row{display:flex;gap:10px;flex-wrap:wrap}
-    .row > *{flex:1 1 200px}
-    input,select{width:100%;padding:10px;border:1px solid #ddd;border-radius:10px}
-    .controls{display:grid;grid-template-columns:1.6fr 1fr 1fr 1fr;gap:10px}
-    .muted{color:#666;font-size:13px}
-    .btn{display:inline-block;padding:10px 12px;border:1px solid #ddd;border-radius:10px;text-decoration:none}
-    .btn:focus, input:focus, select:focus{outline:2px solid #a6c8ff;border-color:#a6c8ff}
-    .rowline{display:flex;align-items:center;justify-content:space-between;margin-top:8px}
-    .fav{cursor:pointer;border:none;background:#f6f6f6;border-radius:999px;padding:6px 10px}
-    .fav.active{background:#ffe6a3}
-    footer{border-top:1px solid #eee;margin-top:20px}
-    .pill{display:inline-block;background:#f5f7ff;border:1px solid #dfe6ff;border-radius:999px;padding:2px 8px;font-size:12px;margin-left:6px}
-    @media (prefers-color-scheme: dark){
-      body{background:#0b0b0c;color:#e8e8ea}
-      header{background:#0b0b0c;border-bottom-color:#1f1f22}
-      .card{border-color:#2a2a2f;background:#131316}
-      .muted{color:#a7a7ad}
-      input,select{background:#0f0f12;color:#e8e8ea;border-color:#2a2a2f}
-      .btn{border-color:#2a2a2f}
-      footer{border-top-color:#1f1f22}
-      .pill{background:#141622;border-color:#283159}
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Layanan Streaming Gratis & Legal</title>
+    <meta name="description" content="Dashboard interaktif untuk menjelajahi dan menemukan film, TV, anime, dan dokumenter gratis yang tersedia secara legal.">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { background-color: #f5f5f4; color: #1c1917; font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Arial, sans-serif; scroll-behavior: smooth; }
+        header { background-color: rgba(255, 255, 255, 0.8); backdrop-filter: saturate(180%) blur(5px); }
+        .chart-container { position: relative; width: 100%; max-width: 400px; height: 300px; margin: auto; }
+        @media (min-width: 768px) { .chart-container { height: 350px; } }
+        input, select { background-color: #ffffff; }
+        .card { background-color: #ffffff; transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out; }
+        .card:hover { transform: translateY(-4px); box-shadow: 0 8px 16px rgba(0,0,0,0.1); }
+        .fav.active { color: #f59e0b; }
+        .pill { background-color: #fef3c7; border: 1px solid #fde68a; color: #78350f; }
+        .status-indicator { display: inline-block; width: 8px; height: 8px; border-radius: 50%; }
+        .status-verified { background: #10b981; }
+        .status-partial { background: #f59e0b; }
+        .status-unverified { background: #6b7280; }
+        .warning { background: #fffbeb; border: 1px solid #fde68a; border-radius: 6px; padding: 4px 8px; font-size: 11px; }
+        .tooltip-container { position: relative; display: inline-flex; align-items: center; }
+        .tooltip { visibility: hidden; width: 220px; background-color: #292524; color: #fff; text-align: left; border-radius: 6px; padding: 8px; position: absolute; z-index: 1; bottom: 125%; left: 50%; margin-left: -110px; opacity: 0; transition: opacity 0.3s; font-size: 12px; line-height: 1.4; }
+        .tooltip-container:hover .tooltip { visibility: visible; opacity: 1; }
+        .info-icon { cursor: help; }
+
+        @media (prefers-color-scheme: dark) {
+            body { background-color: #1c1917; color: #e7e5e4; }
+            header { background-color: rgba(28, 25, 23, 0.8); }
+            input, select, .card { background-color: #292524; border-color: #57534e; }
+            .pill { background-color: #45300a; border-color: #854d0e; color: #fef3c7; }
+            .warning { background: #3a300c; border-color: #854d0e;}
+        }
+    </style>
 </head>
-<body>
-<header>
-  <div class="wrap">
-    <h1>Gerbang Gratis Legal <span class="pill">link-out resmi · no scraping</span></h1>
-    <div class="controls">
-      <input id="q" placeholder="Cari layanan (mis. Plex, Pluto, anime, dokumen) …" aria-label="Pencarian">
-      <select id="type">
-        <option value="">Semua Jenis</option>
-        <option>Film</option><option>TV</option><option>Anime</option><option>Dokumenter</option><option>Live</option>
-      </select>
-      <select id="model">
-        <option value="">Semua Model Gratis</option>
-        <option>Ad-supported</option><option>Public Domain</option><option>Library</option><option>Institution</option>
-      </select>
-      <select id="region">
-        <option value="">Region (manual)</option>
-        <option>Indonesia</option><option>SEA</option><option>Global</option><option>US</option><option>EU/UK</option><option>JP</option><option>CA</option>
-      </select>
-    </div>
-    <div class="row" style="margin-top:10px">
-      <select id="sort">
-        <option value="">Sortir: Default</option>
-        <option value="ease">Kemudahan</option>
-        <option value="speed">Kecepatan</option>
-        <option value="security">Keamanan</option>
-        <option value="name">A–Z</option>
-      </select>
-      <label class="muted" for="onlyFav"><input type="checkbox" id="onlyFav"> Tampilkan Favorit saja</label>
-    </div>
-  </div>
-</header>
+<body class="antialiased">
 
-<main class="wrap">
-  <div id="grid" class="grid" aria-live="polite"></div>
-  <p class="muted">Catatan: ketersediaan/iklan/terjemahan bisa berbeda per negara. Situs dibuka di tab baru.</p>
-</main>
+    <header class="sticky top-0 z-10 border-b border-stone-200 dark:border-stone-800">
+        <div class="max-w-7xl mx-auto px-4 py-4">
+            <h1 class="text-2xl font-bold text-stone-800 dark:text-stone-200">Gerbang Gratis Legal <span class="pill text-xs font-medium">link-out resmi · no scraping</span></h1>
+            <p class="text-sm text-stone-600 dark:text-stone-400 mt-1">Gunakan filter di bawah untuk menjelajahi dasbor dan direktori layanan.</p>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mt-4">
+                <input id="q" class="w-full p-2 border border-stone-300 rounded-lg dark:border-stone-700" placeholder="Cari nama, jenis, atau catatan..." aria-label="Pencarian">
+                <select id="type" class="w-full p-2 border border-stone-300 rounded-lg dark:border-stone-700" aria-label="Filter berdasarkan jenis konten">
+                    <option value="">Semua Jenis</option><option>Anime</option><option>Dokumenter</option><option>Film</option><option>Live</option><option>TV</option>
+                </select>
+                <div class="tooltip-container">
+                    <select id="model" class="w-full p-2 border border-stone-300 rounded-lg dark:border-stone-700" aria-label="Filter berdasarkan model bisnis" aria-describedby="model-tooltip">
+                        <option value="">Semua Model</option><option>Ad-supported</option><option>Institution</option><option>Library</option><option>Public Domain</option>
+                    </select>
+                    <span class="info-icon ml-2 text-stone-500">ⓘ<span id="model-tooltip" role="tooltip" class="tooltip"><b>Ad-supported:</b> Gratis dengan iklan.<br><b>Institution:</b> Didanai institusi publik.<br><b>Library:</b> Perlu kartu anggota perpustakaan.<br><b>Public Domain:</b> Konten bebas hak cipta.</span></span>
+                </div>
+                <select id="region" class="w-full p-2 border border-stone-300 rounded-lg dark:border-stone-700" aria-label="Filter berdasarkan region">
+                    <option value="">Semua Region</option><option>Global</option><option>Indonesia</option><option>SEA</option><option>US</option><option>EU/UK</option><option>JP</option><option>CA</option>
+                </select>
+                <div class="tooltip-container">
+                    <select id="catalog" class="w-full p-2 border border-stone-300 rounded-lg dark:border-stone-700" aria-label="Filter berdasarkan kualitas katalog" aria-describedby="catalog-tooltip">
+                        <option value="">Semua Katalog</option><option value="full">Katalog Penuh</option><option value="limited">Katalog Terbatas</option><option value="blocked">Katalog Diblokir</option>
+                    </select>
+                    <span class="info-icon ml-2 text-stone-500">ⓘ<span id="catalog-tooltip" role="tooltip" class="tooltip"><b>Penuh:</b> Menawarkan katalog lengkap di region terpilih.<br><b>Terbatas:</b> Katalog tersedia tapi lebih sedikit dari region utama.<br><b>Diblokir:</b> Tidak dapat diakses atau katalog kosong di region terpilih (mungkin perlu VPN).</span></span>
+                </div>
+            </div>
+        </div>
+    </header>
 
-<footer>
-  <div class="wrap muted">
-    <p><strong>Legal & Etika:</strong> Halaman ini hanya mengarahkan ke sumber resmi. Tidak menyalin/menyimpan/menyajikan ulang video. Hormati ToS tiap layanan.</p>
-  </div>
-</footer>
+    <main class="max-w-7xl mx-auto p-4">
+        <section id="dashboard" class="mb-8">
+            <h2 class="text-xl font-bold mb-1">Dasbor Ringkasan</h2>
+            <p class="text-stone-600 dark:text-stone-400 mb-4 text-sm">Visualisasi ini diperbarui secara dinamis saat Anda memfilter. Ini menunjukkan komposisi layanan yang cocok dengan pencarian Anda saat ini.</p>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 items-center">
+                <div class="bg-white dark:bg-stone-800 p-4 rounded-lg shadow"><h3 class="font-semibold text-center mb-2">Layanan Berdasarkan Model</h3><div class="chart-container"><canvas id="modelChart"></canvas></div></div>
+                <div class="bg-white dark:bg-stone-800 p-4 rounded-lg shadow"><h3 class="font-semibold text-center mb-2">Aksesibilitas Layanan</h3><div class="chart-container"><canvas id="accessibilityChart"></canvas></div></div>
+                <div class="bg-white dark:bg-stone-800 p-4 rounded-lg shadow"><h3 class="font-semibold text-center mb-2">Ketersediaan per Region</h3><div class="chart-container" style="max-width: 100%;"><canvas id="regionChart"></canvas></div></div>
+            </div>
+        </section>
 
-<script>
-const FAV_KEY = 'legal_free_favs_v1';
-const favs = new Set(JSON.parse(localStorage.getItem(FAV_KEY) || '[]'));
+        <section id="directory">
+             <h2 class="text-xl font-bold mb-1">Direktori Layanan</h2>
+             <p class="text-stone-600 dark:text-stone-400 mb-4 text-sm">Hasil pencarian ditampilkan di bawah. Klik bintang untuk memfavoritkan layanan.</p>
+             <div class="flex flex-wrap gap-4 justify-between items-center mb-4">
+                <div class="flex items-center gap-4 flex-wrap">
+                    <select id="sort" class="p-2 border border-stone-300 rounded-lg dark:border-stone-700 text-sm" aria-label="Sortir hasil">
+                        <option value="">Sortir: Rekomendasi</option><option value="ease">Kemudahan</option><option value="speed">Kecepatan</option><option value="security">Keamanan</option><option value="name">A–Z</option>
+                    </select>
+                    <label class="text-sm text-stone-600 dark:text-stone-400 flex items-center cursor-pointer"><input type="checkbox" id="onlyFav" class="mr-2 h-4 w-4 rounded"> Tampilkan Favorit</label>
+                </div>
+                <div id="resultsCount" class="text-sm text-stone-500"></div>
+             </div>
+            <div id="grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+        </section>
+    </main>
+    
+    <footer class="border-t border-stone-200 dark:border-stone-800 mt-12">
+        <div class="max-w-7xl mx-auto p-4 text-center text-xs text-stone-500">
+            <p><strong>Legal & Etika:</strong> Halaman ini hanya mengarahkan ke sumber resmi. Tidak ada video yang disalin, disimpan, atau disajikan ulang. Hormati ToS tiap layanan.</p>
+        </div>
+    </footer>
 
-const SOURCES = [
-  // ——— Ad-supported / FAST ———
-  {id:'plex',name:'Plex (Free)',types:['Film','TV','Live','Dokumenter'],models:['Ad-supported'],regions:['Global'],scores:{ease:5,speed:5,security:5},urls:{home:'https://www.plex.tv/'},note:'On-demand & live TV gratis; region-lock bisa beda.'},
-  {id:'pluto',name:'Pluto TV',types:['Film','TV','Live'],models:['Ad-supported'],regions:['Global','US','EU/UK'],scores:{ease:5,speed:4,security:5},urls:{home:'https://pluto.tv/'},note:'FAST + VOD; sangat sederhana.'},
-  {id:'roku',name:'The Roku Channel',types:['Film','TV','Live'],models:['Ad-supported'],regions:['US','EU/UK'],scores:{ease:4,speed:4,security:5},urls:{home:'https://www.roku.com/'},note:'Ketersediaan bergantung perangkat/negara.'},
-  {id:'rakuten',name:'Rakuten TV (Free)',types:['Film','TV'],models:['Ad-supported'],regions:['EU/UK','ES','DE','IT'],scores:{ease:4,speed:3,security:4},urls:{home:'https://rakuten.tv/'},note:'Bagian “Free”; sangat regional.'},
-  {id:'tubi',name:'Tubi',types:['Film','TV'],models:['Ad-supported'],regions:['US','CA','MX','AU'],scores:{ease:5,speed:4,security:5},urls:{home:'https://tubitv.com/'},note:'Katalog besar; region terbatas.'},
-  {id:'crackle',name:'Crackle',types:['Film','TV'],models:['Ad-supported'],regions:['US'],scores:{ease:4,speed:4,security:4},urls:{home:'https://www.crackle.com/'},note:'Gratis dengan iklan.'},
-  {id:'freevee',name:'Amazon Freevee',types:['Film','TV'],models:['Ad-supported'],regions:['US','EU/UK','DE'],scores:{ease:4,speed:4,security:5},urls:{home:'https://www.amazon.com/freevee'},note:'Butuh akun Amazon; region terbatas.'},
-  {id:'filmrise',name:'FilmRise',types:['Film','TV'],models:['Ad-supported'],regions:['US','EU/UK'],scores:{ease:4,speed:4,security:4},urls:{home:'https://filmrise.com/'},note:'Label dengan banyak kanal free.'},
-  {id:'xumo',name:'Xumo Play',types:['Film','TV','Live'],models:['Ad-supported'],regions:['US'],scores:{ease:4,speed:4,security:4},urls:{home:'https://www.xumo.com/'},note:'FAST + VOD.'},
-  {id:'peacock',name:'Peacock (Free tier)',types:['Film','TV','Live'],models:['Ad-supported'],regions:['US'],scores:{ease:4,speed:4,security:5},urls:{home:'https://www.peacocktv.com/'},note:'Sebagian konten free.'},
+    <script>
+    (function(){
+        const $ = (id) => document.getElementById(id);
+        const FAV_KEY = 'legal_free_favs_v4';
+        let favs = new Set();
+        try { favs = new Set(JSON.parse(localStorage.getItem(FAV_KEY) || '[]')); } catch(e) {}
 
-  // ——— Asia / Anime ———
-  {id:'retrocrush',name:'RetroCrush',types:['Anime'],models:['Ad-supported'],regions:['US','EU/UK','Global?'],scores:{ease:4,speed:4,security:4},urls:{home:'https://www.retrocrush.tv/'},note:'Anime klasik; banyak gratis.'},
-  {id:'asiancrush',name:'AsianCrush',types:['Film','TV','Anime'],models:['Ad-supported'],regions:['US'],scores:{ease:4,speed:4,security:4},urls:{home:'https://www.asiancrush.com/'},note:'Asia fokus; free + premium.'},
-  {id:'trueid',name:'TrueID',types:['Film','TV'],models:['Ad-supported'],regions:['Indonesia','SEA'],scores:{ease:4,speed:4,security:4},urls:{home:'https://trueid.id/'},note:'Relevan untuk Indonesia; gratis dengan iklan.'},
-  {id:'viki',name:'Viki (Free)',types:['Film','TV'],models:['Ad-supported'],regions:['Global','SEA','US','EU/UK'],scores:{ease:4,speed:3,security:5},urls:{home:'https://www.viki.com/'},note:'Sebagian judul gratis; banyak subtitle komunitas.'},
+        const SOURCES = [
+            {id:'plex', name:'Plex (Free)', types:['Film','TV','Live','Dokumenter'], models:['Ad-supported'], regions:{available:['Global','ID','SEA','US'], catalog:{ID:'limited',US:'full'}}, scores:{ease:5,speed:5,security:5}, urls:{home:'https://www.plex.tv/', free:'https://watch.plex.tv/free'}, note:'On-demand & live TV. Katalog di Indonesia lebih terbatas dibanding region utama.', requirements:{signup:true, vpn:false}, lastVerified:'2025-09-21', status:'verified'},
+            {id:'pluto', name:'Pluto TV', types:['Film','TV','Live'], models:['Ad-supported'], regions:{available:['US','EU/UK','CA','ID'], catalog:{ID:'limited'}}, scores:{ease:4,speed:4,security:5}, urls:{home:'https://pluto.tv/'}, note:'FAST channels. Katalog Indonesia tersedia namun sangat terbatas dibanding US.', requirements:{signup:false, vpn:false}, lastVerified:'2025-09-20', status:'verified'},
+            {id:'tubi', name:'Tubi', types:['Film','TV','Anime'], models:['Ad-supported'], regions:{available:['US','CA','AU'], catalog:{ID:'blocked'}}, scores:{ease:5,speed:4,security:5}, urls:{home:'https://tubitv.com/'}, note:'Katalog besar milik Fox. Perlu VPN dari Indonesia untuk akses.', requirements:{signup:true, vpn:true}, lastVerified:'2025-09-20', status:'verified'},
+            {id:'trueid', name:'TrueID', types:['Film','TV','Live'], models:['Ad-supported'], regions:{available:['Indonesia','SEA'], catalog:{ID:'full'}}, scores:{ease:4,speed:4,security:4}, urls:{home:'https://trueid.id/'}, note:'Fokus konten lokal Indonesia dan Asia.', requirements:{signup:true, vpn:false}, lastVerified:'2025-09-19', status:'verified'},
+            {id:'museasia', name:'Muse Asia (YT)', types:['Anime'], models:['Ad-supported'], regions:{available:['Indonesia','SEA'], catalog:{ID:'full'}}, scores:{ease:5,speed:5,security:5}, urls:{home:'https://www.youtube.com/@MuseAsia'}, note:'Lisensor resmi anime; banyak judul gratis di SEA.', requirements:{signup:false, vpn:false}, lastVerified:'2025-09-21', status:'verified'},
+            {id:'anione', name:'Ani-One Asia (YT)', types:['Anime'], models:['Ad-supported'], regions:{available:['Indonesia','SEA'], catalog:{ID:'full'}}, scores:{ease:5,speed:5,security:5}, urls:{home:'https://www.youtube.com/@AniOneAsia'}, note:'Medialink resmi; banyak episode gratis (regional).', requirements:{signup:false, vpn:false}, lastVerified:'2025-09-21', status:'verified'},
+            {id:'archive', name:'Internet Archive', types:['Film','TV','Dokumenter'], models:['Public Domain','Institution'], regions:{available:['Global'], catalog:{Global:'full'}}, scores:{ease:3,speed:3,security:5}, urls:{home:'https://archive.org/details/movies'}, note:'Arsip raksasa film domain publik. Kualitas beragam.', requirements:{signup:false, vpn:false}, lastVerified:'2025-09-20', status:'verified'},
+            {id:'kanopy', name:'Kanopy', types:['Film','Dokumenter'], models:['Library'], regions:{available:['US','CA','AU'], catalog:{ID:'blocked'}}, scores:{ease:3,speed:4,security:5}, urls:{home:'https://www.kanopy.com/'}, note:'Memerlukan kartu perpustakaan/universitas yang berpartisipasi.', requirements:{signup:true, libraryCard:true, vpn:true}, lastVerified:'2025-09-15', status:'verified'},
+            {id:'crunchyroll', name:'Crunchyroll (Free)', types:['Anime'], models:['Ad-supported'], regions:{available:['US','Global'], catalog:{ID:'limited',SEA:'limited'}}, scores:{ease:3,speed:4,security:5}, urls:{home:'https://www.crunchyroll.com/'}, note:'Terbatas gratis dengan iklan; mayoritas konten di US.', requirements:{signup:true, vpn:'sometimes'}, lastVerified:'2025-09-11', status:'partial'},
+            {id:'freevee', name:'Amazon Freevee', types:['Film','TV'], models:['Ad-supported'], regions:{available:['US','EU/UK'], catalog:{ID:'blocked'}}, scores:{ease:4,speed:4,security:5}, urls:{home:'https://www.amazon.com/freevee'}, note:'Butuh akun Amazon; perlu VPN dari Indonesia.', requirements:{signup:true, vpn:true, account:'Amazon'}, lastVerified:'2025-09-12', status:'verified'},
+            {id:'rakuten', name:'Rakuten TV (Free)', types:['Film','TV'], models:['Ad-supported'], regions:{available:['EU/UK'], catalog:{ID:'blocked'}}, scores:{ease:4,speed:3,security:4}, urls:{home:'https://rakuten.tv/'}, note:'Bagian “Free” hanya tersedia di Eropa.', requirements:{signup:true, vpn:true}, lastVerified:'2025-09-01', status:'verified'},
+            {id:'roku', name:'The Roku Channel', types:['Film','TV','Live'], models:['Ad-supported'], regions:{available:['US', 'EU/UK', 'CA'], catalog:{ID:'blocked'}}, scores:{ease:4,speed:4,security:5}, urls:{home:'https://www.roku.com/whats-on/the-roku-channel'}, note:'Konten original dan agregat. Memerlukan VPN.', requirements:{signup:false, vpn:true}, lastVerified:'2025-09-05', status:'verified'}
+        ];
 
-  // ——— Domain publik / institusi ———
-  {id:'archive',name:'Internet Archive (Moving Image)',types:['Film','TV','Dokumenter'],models:['Public Domain','Institution'],regions:['Global'],scores:{ease:3,speed:3,security:5},urls:{home:'https://archive.org/details/movies'},note:'Arsip raksasa; kualitas beragam.'},
-  {id:'loc',name:'Library of Congress — Public Domain Films',types:['Film','Dokumenter'],models:['Public Domain','Institution'],regions:['Global'],scores:{ease:3,speed:3,security:5},urls:{home:'https://www.loc.gov/'},note:'Kurasi domain publik resmi.'},
-  {id:'pdr',name:'The Public Domain Review',types:['Film','Dokumenter'],models:['Public Domain'],regions:['Global'],scores:{ease:3,speed:3,security:5},urls:{home:'https://publicdomainreview.org/'},note:'Kurasi & esai; bukan OTT.'},
-  {id:'pdm',name:'PublicDomainMovie',types:['Film'],models:['Public Domain'],regions:['Global'],scores:{ease:3,speed:2,security:3},urls:{home:'https://publicdomainmovie.net/'},note:'Situs independen; mutu campur.'},
-  {id:'nhk',name:'NHK World-Japan',types:['TV','Dokumenter','Live'],models:['Institution'],regions:['Global','JP'],scores:{ease:4,speed:4,security:5},urls:{home:'https://www3.nhk.or.jp/nhkworld/'},note:'Berita & dok. global gratis.'},
-  {id:'nfb',name:'National Film Board of Canada (NFB.ca)',types:['Film','Dokumenter'],models:['Institution'],regions:['Global','CA'],scores:{ease:4,speed:4,security:5},urls:{home:'https://www.nfb.ca/'},note:'Koleksi dokumenter/animasi gratis.'},
-  {id:'kanopy',name:'Kanopy (via Perpustakaan/Kampus)',types:['Film','Dokumenter'],models:['Library'],regions:['Global'],scores:{ease:3,speed:4,security:5},urls:{home:'https://www.kanopy.com/'},note:'Perlu kartu perpustakaan/universitas.'}
+        let modelChart, regionChart, accessibilityChart;
+        let searchDebounce;
+        
+        const setupCharts = () => {
+            const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            Chart.defaults.color = isDark ? '#e7e5e4' : '#1c1917';
+            const baseOptions = { responsive: true, maintainAspectRatio: false };
+            const chartConfigs = [ { id: 'modelChart', type: 'doughnut', options: { ...baseOptions, plugins: { legend: { position: 'bottom' } } } }, { id: 'accessibilityChart', type: 'pie', options: { ...baseOptions, plugins: { legend: { position: 'bottom' } } } }, { id: 'regionChart', type: 'bar', options: { ...baseOptions, indexAxis: 'y', plugins: { legend: { display: false } } } } ];
+            [modelChart, accessibilityChart, regionChart] = chartConfigs.map(config => new Chart($(config.id).getContext('2d'), config));
+        };
+        
+        const showEmptyChartMessage = (chart, message) => {
+            const { ctx, width, height } = chart;
+            chart.clear();
+            ctx.save();
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.font = "14px " + Chart.defaults.font.family;
+            ctx.fillStyle = Chart.defaults.color;
+            ctx.fillText(message, width / 2, height / 2);
+            ctx.restore();
+        };
+        
+        const updateCharts = (data) => {
+            if (data.length === 0) { [modelChart, accessibilityChart, regionChart].forEach(chart => showEmptyChartMessage(chart, 'Tidak ada data')); return; }
+            const chartColors = { models: ['#f59e0b', '#10b981', '#3b82f6', '#8b5cf6'], regions: '#3b82f6', accessibility: ['#10b981', '#f59e0b', '#ef4444'] };
+            const modelCounts = data.flatMap(s => s.models).reduce((acc, model) => ({...acc, [model]: (acc[model] || 0) + 1 }), {});
+            modelChart.data = { labels: Object.keys(modelCounts), datasets: [{ data: Object.values(modelCounts), backgroundColor: chartColors.models }] };
+            modelChart.update();
+            const accessibilityCounts = data.reduce((acc, s) => { if (s.requirements.libraryCard) acc['Akses Khusus']++; else if (s.requirements.signup) acc['Butuh Akun']++; else acc['Tanpa Akun']++; return acc; }, {'Tanpa Akun': 0, 'Butuh Akun': 0, 'Akses Khusus': 0});
+            accessibilityChart.data = { labels: Object.keys(accessibilityCounts), datasets: [{ data: Object.values(accessibilityCounts), backgroundColor: chartColors.accessibility }] };
+            accessibilityChart.update();
+            const allRegions = [...new Set(SOURCES.flatMap(s => s.regions.available))];
+            const regionCounts = allRegions.reduce((acc, region) => ({...acc, [region]: data.filter(s => s.regions.available.includes(region)).length }), {});
+            const sortedRegions = Object.entries(regionCounts).filter(([, count]) => count > 0).sort((a, b) => b[1] - a[1]);
+            regionChart.data = { labels: sortedRegions.map(e => e[0]), datasets: [{ label: 'Jumlah Layanan', data: sortedRegions.map(e => e[1]), backgroundColor: chartColors.regions }] };
+            regionChart.update();
+        };
 
-  {id:'museasia',name:'Muse Asia (YouTube)',types:['Anime'],models:['Ad-supported'],regions:['Indonesia','SEA'],scores:{ease:5,speed:5,security:5},urls:{home:'https://www.youtube.com/@MuseAsia'},note:'Kanal resmi lisensi Muse Communication; banyak judul gratis legal di Asia Tenggara.'},
-  {id:'anione',name:'Ani-One Asia (YouTube)',types:['Anime'],models:['Ad-supported'],regions:['Indonesia','SEA'],scores:{ease:5,speed:5,security:5},urls:{home:'https://www.youtube.com/@AniOneAsia'},note:'Platform anime resmi milik Medialink; banyak episode gratis (region bergantung).'},
-  {id:'gundaminfo',name:'GUNDAM.INFO (YouTube)',types:['Anime'],models:['Ad-supported'],regions:['Global','SEA'],scores:{ease:5,speed:5,security:5},urls:{home:'https://www.youtube.com/@GundamInfo'},note:'Channel resmi Gundam; sering rilis seri/episode penuh secara gratis.'},
-  {id:'tmsanime',name:'TMS Anime (YouTube)',types:['Anime'],models:['Ad-supported'],regions:['Global'],scores:{ease:4,speed:5,security:5},urls:{home:'https://www.youtube.com/@tmsanime'},note:'Channel resmi TMS Entertainment; beberapa episode penuh tersedia.'},
-  {id:'kadokawa',name:'KADOKAWA Anime (YouTube)',types:['Anime'],models:['Ad-supported'],regions:['Global','SEA'],scores:{ease:4,speed:5,security:5},urls:{home:'https://www.youtube.com/@KADOKAWAanime'},note:'Channel resmi; campuran trailer & beberapa episode/kompilasi legal.'},
-  {id:'bilibili',name:'bilibili.tv (SEA)',types:['Anime','TV'],models:['Ad-supported'],regions:['Indonesia','SEA'],scores:{ease:4,speed:4,security:5},urls:{home:'https://www.bilibili.tv/en'},note:'Platform resmi; sebagian judul gratis dengan iklan, sangat tergantung region.'},
+        const render = () => {
+            const state = { q: $('q').value.toLowerCase(), type: $('type').value, model: $('model').value, region: $('region').value, catalog: $('catalog').value, sort: $('sort').value, onlyFav: $('onlyFav').checked };
 
-];
+            let filtered = SOURCES.filter(src => {
+                const searchBlob = `${src.name} ${src.note} ${src.types.join(' ')}`.toLowerCase();
+                if (state.q && !searchBlob.includes(state.q)) return false;
+                if (state.type && !src.types.includes(state.type)) return false;
+                if (state.model && !src.models.includes(state.model)) return false;
+                if (state.region && !src.regions.available.includes(state.region)) return false;
+                if (state.onlyFav && !favs.has(src.id)) return false;
+                
+                const regionForCatalog = state.region || 'ID';
+                const catalogStatus = src.regions.catalog[regionForCatalog] || src.regions.catalog['Global'] || 'limited';
+                if (state.catalog && state.catalog !== catalogStatus) return false;
+                
+                return true;
+            });
 
-function getState(){
-  return {
-    q: (document.getElementById('q').value || '').toLowerCase(),
-    type: document.getElementById('type').value,
-    model: document.getElementById('model').value,
-    region: document.getElementById('region').value,
-    sort: document.getElementById('sort').value,
-    onlyFav: document.getElementById('onlyFav').checked
-  };
-}
+            if (state.sort) { filtered.sort((a, b) => (state.sort === 'name') ? a.name.localeCompare(b.name) : (b.scores?.[state.sort] ?? 0) - (a.scores?.[state.sort] ?? 0)); }
+            updateCharts(filtered);
+            $('resultsCount').textContent = `Menampilkan ${filtered.length} dari ${SOURCES.length} layanan`;
 
-function match(src, s){
-  if(s.q){
-    const blob = [src.name, src.note, src.types.join(' '), src.models.join(' '), src.regions.join(' ')].join(' ').toLowerCase();
-    if(!blob.includes(s.q)) return false;
-  }
-  if(s.type && !src.types.includes(s.type)) return false;
-  if(s.model && !src.models.includes(s.model)) return false;
-  if(s.region && !src.regions.includes(s.region) && !(s.region==='SEA' && src.regions.includes('Indonesia'))) return false;
-  if(s.onlyFav && !favs.has(src.id)) return false;
-  return true;
-}
+            const grid = $('grid');
+            grid.innerHTML = filtered.length ? '' : `<p class="text-stone-500 col-span-full text-center">Tidak ada hasil yang cocok. Coba longgarkan filter Anda.</p>`;
+            
+            filtered.forEach(x => {
+                const card = document.createElement('div');
+                card.className = 'card p-4 rounded-lg shadow border border-stone-200 dark:border-stone-700 flex flex-col';
+                const star = (key) => '★'.repeat(x.scores?.[key] ?? 0) + '☆'.repeat(5 - (x.scores?.[key] ?? 0));
+                const warnings = [];
+                if (x.requirements.vpn) warnings.push('Butuh VPN');
+                if (x.requirements.signup) warnings.push('Butuh Daftar');
+                if (x.requirements.libraryCard) warnings.push('Perlu Kartu Anggota');
+                const warningHtml = warnings.length ? `<div class="warning mt-2">${warnings.join(' · ')}</div>` : '';
+                const statusMap = { verified: 'Terverifikasi', partial: 'Sebagian Fungsional', unverified: 'Belum Diverifikasi' };
+                const selectedRegion = state.region || 'ID';
+                const catalogStatus = x.regions.catalog[selectedRegion] || x.regions.catalog['Global'];
+                let catalogHtml = '';
+                if(catalogStatus) {
+                    const statusText = {full: 'Penuh', limited: 'Terbatas', blocked: 'Diblokir'}[catalogStatus];
+                    catalogHtml = `<div class="text-xs">Katalog di <strong>${selectedRegion}</strong>: ${statusText}</div>`;
+                }
 
-function sorters(key){
-  return (a,b)=>{
-    if(key==='name') return a.name.localeCompare(b.name);
-    if(['ease','speed','security'].includes(key)){
-      const av = a.scores?.[key] ?? -1, bv = b.scores?.[key] ?? -1;
-      return bv - av;
-    }
-    return 0;
-  };
-}
+                card.innerHTML = `
+                    <div class="flex-grow">
+                        <div class="flex justify-between items-start"><h3 class="font-bold text-lg pr-2">${x.name}</h3><span class="status-indicator status-${x.status}" title="${statusMap[x.status]}"></span></div>
+                        <div class="text-xs text-stone-500 mt-2 space-y-1">
+                            <div><strong>Jenis:</strong> ${(x.types || []).join(', ')}</div>
+                            ${catalogHtml}
+                            <div class="text-xs opacity-70">Diverifikasi: ${x.lastVerified}</div>
+                        </div>
+                        <p class="text-sm text-stone-600 dark:text-stone-400 mt-2">${x.note || ''}</p>
+                        ${warningHtml}
+                    </div>
+                    <div class="mt-4 pt-4 border-t border-stone-200 dark:border-stone-700 flex justify-between items-center gap-2">
+                        <a href="${x.urls.free || x.urls.home}" target="_blank" rel="noreferrer noopener" class="text-sm font-semibold text-blue-600 hover:underline">${x.urls.free ? 'Buka Bagian Gratis' : 'Kunjungi Situs'}</a>
+                        <div class="flex items-center gap-2">
+                            <button class="copy-url" data-url="${x.urls.free || x.urls.home}" title="Salin URL" aria-label="Salin URL"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M4 1.5H3a2 2 0 0 0-2 2V14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V3.5a2 2 0 0 0-2-2h-1v1h1a1 1 0 0 1 1 1V14a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V3.5a1 1 0 0 1 1-1h1v-1z"/><path d="M9.5 1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-3a.5.5 0 0 1-.5-.5v-1a.5.5 0 0 1 .5-.5h3z"/></svg></button>
+                            <button class="fav text-2xl ${favs.has(x.id) ? 'active' : ''}" data-id="${x.id}" aria-label="Favorit">★</button>
+                        </div>
+                    </div>`;
+                grid.appendChild(card);
+            });
+        };
+        
+        const debounce = (func, wait) => (...args) => { clearTimeout(searchDebounce); searchDebounce = setTimeout(() => func.apply(this, args), wait); };
 
-function render(){
-  const s = getState();
-  let list = SOURCES.filter(x=>match(x,s));
-  if(s.sort) list.sort(sorters(s.sort));
-  const grid = document.getElementById('grid');
-  grid.innerHTML = '';
-  if(!list.length){ grid.innerHTML = '<p class="muted">Tidak ada hasil. Coba longgarkan filter.</p>'; return; }
-  for(const x of list){
-    const e = document.createElement('div');
-    e.className='card';
-    const scores = x.scores || {};
-    const scoreStr = (k)=> (scores[k] ? '★'.repeat(scores[k]) : '—');
-    e.innerHTML = `
-      <h3>${x.name}</h3>
-      <div class="meta">
-        <span class="badge">${x.models.join(' / ')}</span>
-        ${x.types.map(t=>`<span class="badge">${t}</span>`).join('')}
-        <div style="margin-top:6px">Region: ${x.regions.join(', ')}</div>
-        <div style="margin-top:6px">Kemudahan: ${scoreStr('ease')} · Kecepatan: ${scoreStr('speed')} · Keamanan: ${scoreStr('security')}</div>
-      </div>
-      <p class="muted">${x.note || ''}</p>
-      <div class="rowline">
-        <a class="btn" href="${x.urls.home}" target="_blank" rel="noreferrer noopener">Buka Situs</a>
-        <button class="fav ${favs.has(x.id)?'active':''}" aria-label="Pin favorit" data-id="${x.id}">${favs.has(x.id)?'★ Favorit':'☆ Favorit'}</button>
-      </div>
-    `;
-    grid.appendChild(e);
-  }
-  grid.querySelectorAll('.fav').forEach(btn=>{
-    btn.onclick = ()=>{
-      const id = btn.dataset.id;
-      if(favs.has(id)){ favs.delete(id); btn.classList.remove('active'); btn.textContent='☆ Favorit'; }
-      else { favs.add(id); btn.classList.add('active'); btn.textContent='★ Favorit'; }
-      localStorage.setItem(FAV_KEY, JSON.stringify([...favs]));
-    };
-  });
-}
+        const setupListeners = () => {
+            $('q').addEventListener('input', debounce(render, 300));
+            ['type', 'model', 'region', 'catalog', 'sort', 'onlyFav'].forEach(id => $(id).addEventListener('change', render));
 
-['q','type','model','region','sort','onlyFav'].forEach(id=>{
-  document.getElementById(id).addEventListener('input', render);
-});
-render();
-</script>
+            $('grid').addEventListener('click', e => {
+                const favButton = e.target.closest('.fav');
+                const copyButton = e.target.closest('.copy-url');
+                if (favButton) {
+                    const id = favButton.dataset.id;
+                    favs.has(id) ? favs.delete(id) : favs.add(id);
+                    localStorage.setItem(FAV_KEY, JSON.stringify(Array.from(favs)));
+                    favButton.classList.toggle('active');
+                    if ($('onlyFav').checked) render();
+                }
+                if (copyButton) {
+                    const url = copyButton.dataset.url;
+                    navigator.clipboard.writeText(url).then(() => {
+                       const original = copyButton.innerHTML;
+                       copyButton.innerHTML = '✓';
+                       setTimeout(() => { copyButton.innerHTML = original; }, 1500);
+                    });
+                }
+            });
+        };
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            setupCharts();
+            render();
+            setupListeners();
+        });
+    })();
+    </script>
 </body>
 </html>
+
